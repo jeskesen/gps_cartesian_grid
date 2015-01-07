@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+	
+	<node name="local_grid" pkg="gps_cartesian_grid" type="gps_cartesian_grid_node" output="screen">
+		<param name="origin_latitude" value="42.346241" />
+		<param name="origin_longitude" value="-71.097781" />
+		<param name="origin_altitude" value="0" />
+	</node>
+
+</launch>

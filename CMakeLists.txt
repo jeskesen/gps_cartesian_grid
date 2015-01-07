@@ -5,6 +5,7 @@ project(gps_cartesian_grid)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED
+  roscpp
   sensor_msgs
   geometry_msgs
   message_generation
@@ -83,7 +84,7 @@ catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES gps_cartesian_grid
 #  CATKIN_DEPENDS other_catkin_pkg
-#  DEPENDS system_lib
+  DEPENDS Geographic
   CATKIN_DEPENDS message_runtime
 )
 
@@ -101,16 +102,16 @@ catkin_package(
 # )
 
 ## Declare a cpp executable
-# add_executable(gps_cartesian_grid_node src/gps_cartesian_grid_node.cpp)
+add_executable(gps_cartesian_grid_node src/gps_cartesian_grid_node.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-#add_dependencies(gps_cartesian_grid_node gps_cartesian_grid_generate_messages_cpp)
+add_dependencies(gps_cartesian_grid_node gps_cartesian_grid_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(gps_cartesian_grid_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(gps_cartesian_grid_node Geographic
+  ${catkin_LIBRARIES}
+)
 
 #############
 ## Install ##
