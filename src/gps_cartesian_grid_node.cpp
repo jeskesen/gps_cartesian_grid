@@ -8,7 +8,7 @@ class GpsCartesianGridNode
 public:
 	GpsCartesianGridNode();
 private:
-
+	geometry_msgs::Point fixToPoint(sensor_msgs::NavSatFix gps_fix);
 	bool fixToPointServiceCall(gps_cartesian_grid::FixToPoint::Request &req, gps_cartesian_grid::FixToPoint::Response &point);
 	ros::NodeHandle nh_, private_nh_;
 	ros::ServiceServer fixToPointService_;
@@ -34,12 +34,21 @@ GpsCartesianGridNode::GpsCartesianGridNode() : nh_(),
 	fixToPointService_ = nh_.advertiseService("fix_to_point", &GpsCartesianGridNode::fixToPointServiceCall, this);
 }
 
+geometry_msgs::Point GpsCartesianGridNode::fixToPoint(sensor_msgs::NavSatFix gps_fix)
+{
+	geometry_msgs::Point point;
+	grid_.Forward(gps_fix.latitude, gps_fix.longitude, gps_fix.altitude, point.x,  point.y,  point.z);
+	return point;
+}
+
 bool GpsCartesianGridNode::fixToPointServiceCall(gps_cartesian_grid::FixToPoint::Request &req,
 		gps_cartesian_grid::FixToPoint::Response &point)
 {
-	grid_.Forward(req.gps_fix.latitude, req.gps_fix.longitude, req.gps_fix.altitude, point.cartesian.x,  point.cartesian.y,  point.cartesian.z);
+	point.cartesian = fixToPoint(req.gps_fix);
 	return true;
 }
+
+
 
 int main(int argc, char **argv)
 {
