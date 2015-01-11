@@ -9,6 +9,7 @@ find_package(catkin REQUIRED
   sensor_msgs
   geometry_msgs
   message_generation
+  tf2_ros
 )
 
 ## System dependencies are found with CMake's conventions
