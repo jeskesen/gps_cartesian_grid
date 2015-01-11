@@ -2,6 +2,7 @@
 #include <ros/ros.h>
 #include <gps_cartesian_grid/FixToPoint.h>
 #include <tf2_ros/transform_broadcaster.h>
+#include <sensor_msgs/Imu.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <GeographicLib/LocalCartesian.hpp>
 
@@ -12,7 +13,8 @@ public:
 private:
 	geometry_msgs::Point fixToPoint(sensor_msgs::NavSatFix gps_fix);
 	bool fixToPointServiceCall(gps_cartesian_grid::FixToPoint::Request &req, gps_cartesian_grid::FixToPoint::Response &point);
-	void newNavSatFix(sensor_msgs::NavSatFix newFix){gps_fix_ = newFix;  publishTf();}
+	void newNavSatFix(sensor_msgs::NavSatFix newFix){gps_fix_ = newFix;}
+	void newImuData(sensor_msgs::Imu newImu){imu_ = newImu;  publishTf();}
 	void publishTf();
 	ros::NodeHandle nh_, private_nh_;
 
@@ -23,9 +25,10 @@ private:
 	tf2_ros::TransformBroadcaster tf_broadcaster_;
 	std::string global_frame_, robot_frame_;
 
-	std::string gps_topic_;
-	ros::Subscriber gps_sub_;
+	std::string gps_topic_, imu_topic_;
+	ros::Subscriber gps_sub_, imu_sub_;
 	sensor_msgs::NavSatFix gps_fix_;
+	sensor_msgs::Imu imu_;
 
 	// thirdparty GeographicLib
 	GeographicLib::LocalCartesian grid_;
@@ -47,11 +50,13 @@ GpsCartesianGridNode::GpsCartesianGridNode() : nh_(),
 	private_nh_.param("robot_frame", robot_frame_, std::string("base_link"));
 
 	private_nh_.param("gps_fix_topic", gps_topic_, std::string("fix"));
+	private_nh_.param("imu_topic", imu_topic_, std::string("imu/data"));
 
 	grid_.Reset(lat,lon,alt);
 
 	fixToPointService_ = nh_.advertiseService("fix_to_point", &GpsCartesianGridNode::fixToPointServiceCall, this);
-	gps_sub_ = nh_.subscribe(gps_topic_, 10, &GpsCartesianGridNode::newNavSatFix, this);
+	gps_sub_ = nh_.subscribe(gps_topic_, 1, &GpsCartesianGridNode::newNavSatFix, this);
+	imu_sub_ = nh_.subscribe(imu_topic_, 1, &GpsCartesianGridNode::newImuData, this);
 }
 
 geometry_msgs::Point GpsCartesianGridNode::fixToPoint(sensor_msgs::NavSatFix gps_fix)
@@ -84,11 +89,11 @@ void GpsCartesianGridNode::publishTf()
 	/*
 	tf2::Quaternion q;
 	q.setRPY(0, 0, msg->theta);
-	transformStamped.transform.rotation.x = q.x();
-	transformStamped.transform.rotation.y = q.y();
-	transformStamped.transform.rotation.z = q.z();
-	transformStamped.transform.rotation.w = q.w();
 	*/
+	transformStamped.transform.rotation.x = imu_.orientation.x;
+	transformStamped.transform.rotation.y = imu_.orientation.y;
+	transformStamped.transform.rotation.z = imu_.orientation.z;
+	transformStamped.transform.rotation.w = imu_.orientation.w;
 
 	tf_broadcaster_.sendTransform(transformStamped);
 }
