@@ -4,6 +4,7 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <sensor_msgs/Imu.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <geometry_msgs/Point.h>
 #include <GeographicLib/LocalCartesian.hpp>
 
 class GpsCartesianGridNode
@@ -13,7 +14,7 @@ public:
 private:
 	geometry_msgs::Point fixToPoint(sensor_msgs::NavSatFix gps_fix);
 	bool fixToPointServiceCall(gps_cartesian_grid::FixToPoint::Request &req, gps_cartesian_grid::FixToPoint::Response &point);
-	void newNavSatFix(sensor_msgs::NavSatFix newFix){gps_fix_ = newFix;}
+	void newNavSatFix(sensor_msgs::NavSatFix newFix){gps_fix_ = newFix; point_pub_.publish(gps_fix_);}
 	void newImuData(sensor_msgs::Imu newImu){imu_ = newImu;  publishTf();}
 	void publishTf();
 	ros::NodeHandle nh_, private_nh_;
@@ -27,6 +28,7 @@ private:
 
 	std::string gps_topic_, imu_topic_;
 	ros::Subscriber gps_sub_, imu_sub_;
+	ros::Publisher point_pub_;
 	sensor_msgs::NavSatFix gps_fix_;
 	sensor_msgs::Imu imu_;
 
@@ -49,14 +51,16 @@ GpsCartesianGridNode::GpsCartesianGridNode() : nh_(),
 	private_nh_.param("global_frame", global_frame_, std::string("/world"));
 	private_nh_.param("robot_frame", robot_frame_, std::string("base_link"));
 
-	private_nh_.param("gps_fix_topic", gps_topic_, std::string("fix"));
-	private_nh_.param("imu_topic", imu_topic_, std::string("imu/data"));
+	private_nh_.param("gps_fix_topic", gps_topic_, std::string("gps/fix"));
+	//private_nh_.param("imu_topic", imu_topic_, std::string("imu/data"));
 
 	grid_.Reset(lat,lon,alt);
 
 	fixToPointService_ = nh_.advertiseService("fix_to_point", &GpsCartesianGridNode::fixToPointServiceCall, this);
 	gps_sub_ = nh_.subscribe(gps_topic_, 1, &GpsCartesianGridNode::newNavSatFix, this);
 	imu_sub_ = nh_.subscribe(imu_topic_, 1, &GpsCartesianGridNode::newImuData, this);
+	point_pub_ = nh_.advertise<geometry_msgs::Point>("position", 1);
+
 }
 
 geometry_msgs::Point GpsCartesianGridNode::fixToPoint(sensor_msgs::NavSatFix gps_fix)
@@ -97,6 +101,7 @@ void GpsCartesianGridNode::publishTf()
 
 	tf_broadcaster_.sendTransform(transformStamped);
 }
+
 
 int main(int argc, char **argv)
 {
