@@ -14,7 +14,7 @@ public:
 private:
 	geometry_msgs::Point fixToPoint(sensor_msgs::NavSatFix gps_fix);
 	bool fixToPointServiceCall(gps_cartesian_grid::FixToPoint::Request &req, gps_cartesian_grid::FixToPoint::Response &point);
-	void newNavSatFix(sensor_msgs::NavSatFix newFix){gps_fix_ = newFix; point_pub_.publish(gps_fix_);}
+	void newNavSatFix(sensor_msgs::NavSatFix newFix){gps_fix_ = newFix; point_pub_.publish(fixToPoint(gps_fix_));}
 	void newImuData(sensor_msgs::Imu newImu){imu_ = newImu;  publishTf();}
 	void publishTf();
 	ros::NodeHandle nh_, private_nh_;
@@ -52,7 +52,7 @@ GpsCartesianGridNode::GpsCartesianGridNode() : nh_(),
 	private_nh_.param("robot_frame", robot_frame_, std::string("base_link"));
 
 	private_nh_.param("gps_fix_topic", gps_topic_, std::string("gps/fix"));
-	//private_nh_.param("imu_topic", imu_topic_, std::string("imu/data"));
+	private_nh_.param("imu_topic", imu_topic_, std::string("imu/data"));
 
 	grid_.Reset(lat,lon,alt);
 
@@ -106,6 +106,7 @@ void GpsCartesianGridNode::publishTf()
 int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "gps_cartesian_grid_node");
+	GpsCartesianGridNode local_grid;
 	ros::spin();
 	return 0;
 }
