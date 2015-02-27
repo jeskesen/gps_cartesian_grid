@@ -56,6 +56,7 @@ find_package(catkin REQUIRED
 add_service_files(
   FILES
   FixToPoint.srv
+  LatLonToPoint.srv
 )
 
 ## Generate actions in the 'action' folder

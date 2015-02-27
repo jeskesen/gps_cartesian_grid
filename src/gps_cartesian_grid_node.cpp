@@ -1,6 +1,7 @@
 
 #include <ros/ros.h>
 #include <gps_cartesian_grid/FixToPoint.h>
+#include <gps_cartesian_grid/LatLonToPoint.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <sensor_msgs/Imu.h>
 #include <geometry_msgs/TransformStamped.h>
@@ -11,15 +12,16 @@ class GpsCartesianGridNode
 public:
 	GpsCartesianGridNode();
 private:
-	geometry_msgs::Point fixToPoint(sensor_msgs::NavSatFix gps_fix);
+	geometry_msgs::Point fixToPoint(double latitude, double longitude, double altitude);
 	bool fixToPointServiceCall(gps_cartesian_grid::FixToPoint::Request &req, gps_cartesian_grid::FixToPoint::Response &point);
+	bool latLonToPointServiceCall(gps_cartesian_grid::LatLonToPoint::Request &req, gps_cartesian_grid::LatLonToPoint::Response &point);
 	void newNavSatFix(sensor_msgs::NavSatFix newFix){gps_fix_ = newFix;}
 	void newImuData(sensor_msgs::Imu newImu){imu_ = newImu;  publishTf();}
 	void publishTf();
 	ros::NodeHandle nh_, private_nh_;
 
 	// for service
-	ros::ServiceServer fixToPointService_;
+	ros::ServiceServer fixToPointService_, latLonToPointService_;
 
 	// for tf
 	tf2_ros::TransformBroadcaster tf_broadcaster_;
@@ -55,21 +57,29 @@ GpsCartesianGridNode::GpsCartesianGridNode() : nh_(),
 	grid_.Reset(lat,lon,alt);
 
 	fixToPointService_ = nh_.advertiseService("fix_to_point", &GpsCartesianGridNode::fixToPointServiceCall, this);
+	latLonToPointService_ = nh_.advertiseService("lat_lon_to_point", &GpsCartesianGridNode::latLonToPointServiceCall, this);
 	gps_sub_ = nh_.subscribe(gps_topic_, 1, &GpsCartesianGridNode::newNavSatFix, this);
 	imu_sub_ = nh_.subscribe(imu_topic_, 1, &GpsCartesianGridNode::newImuData, this);
 }
 
-geometry_msgs::Point GpsCartesianGridNode::fixToPoint(sensor_msgs::NavSatFix gps_fix)
+geometry_msgs::Point GpsCartesianGridNode::fixToPoint(double latitude, double longitude, double altitude)
 {
 	geometry_msgs::Point point;
-	grid_.Forward(gps_fix.latitude, gps_fix.longitude, gps_fix.altitude, point.x,  point.y,  point.z);
+	grid_.Forward(latitude, longitude, altitude, point.x,  point.y,  point.z);
 	return point;
 }
 
 bool GpsCartesianGridNode::fixToPointServiceCall(gps_cartesian_grid::FixToPoint::Request &req,
 		gps_cartesian_grid::FixToPoint::Response &point)
 {
-	point.cartesian = fixToPoint(req.gps_fix);
+	point.cartesian = fixToPoint(req.gps_fix.latitude, req.gps_fix.longitude, req.gps_fix.altitude);
+	return true;
+}
+
+bool GpsCartesianGridNode::latLonToPointServiceCall(gps_cartesian_grid::LatLonToPoint::Request &req,
+		gps_cartesian_grid::LatLonToPoint::Response &point)
+{
+	point.cartesian = fixToPoint(req.latitude, req.longitude, grid_.HeightOrigin());
 	return true;
 }
 
@@ -81,7 +91,7 @@ void GpsCartesianGridNode::publishTf()
 	transformStamped.header.frame_id = global_frame_;
 	transformStamped.child_frame_id = robot_frame_;
 
-	geometry_msgs::Point point = fixToPoint(gps_fix_);
+	geometry_msgs::Point point = fixToPoint(gps_fix_.latitude, gps_fix_.longitude, gps_fix_.altitude);
 	transformStamped.transform.translation.x = point.x;
 	transformStamped.transform.translation.y = point.y;
 	transformStamped.transform.translation.z = point.z;
