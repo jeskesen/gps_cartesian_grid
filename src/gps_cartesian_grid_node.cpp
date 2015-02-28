@@ -34,6 +34,8 @@ private:
 	sensor_msgs::NavSatFix gps_fix_;
 	sensor_msgs::Imu imu_;
 
+	bool is2D_;
+
 	// thirdparty GeographicLib
 	GeographicLib::LocalCartesian grid_;
 };
@@ -55,6 +57,7 @@ GpsCartesianGridNode::GpsCartesianGridNode() : nh_(),
 
 	private_nh_.param("gps_fix_topic", gps_topic_, std::string("gps/fix"));
 	private_nh_.param("imu_topic", imu_topic_, std::string("imu/data"));
+	private_nh_.param("is_2d", is2D_, true);
 
 	grid_.Reset(lat,lon,alt);
 
@@ -70,6 +73,10 @@ geometry_msgs::Point GpsCartesianGridNode::fixToPoint(double latitude, double lo
 {
 	geometry_msgs::Point point;
 	grid_.Forward(latitude, longitude, altitude, point.x,  point.y,  point.z);
+
+	if(is2D_)
+		point.z = 0.0;
+
 	return point;
 }
 
